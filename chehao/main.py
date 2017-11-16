@@ -4,13 +4,16 @@ import logging
 import logging.config
 from urllib import request
 from bs4 import BeautifulSoup as bs
+
 # import fundutil
 # 保存首页的图片到本地
 # 定义文件保存路径
-targetPath = "d:\\myfund.txt"
 logging.config.fileConfig('util/logging.conf')
 
+
 def getFundInfoRecentMonth(map, result):
+    logger = logging.getLogger('main')
+    logger.info("获取基金最近一月信息开始...")
     # iterate each fund info
     for key, value in map.items():
         fund_resp = request.urlopen(value)
@@ -25,13 +28,20 @@ def getFundInfoRecentMonth(map, result):
                     # print(int(item.get_text()[:-1]))
                     # remove the at tail'%'
                     result[key] = float(item.get_text()[:-1])
+                    logger.debug("fund key is [%s] and value is [%s] " % (key, item.get_text()[:-1]))
                 else:
+                    logger.warn("")
                     print(item.find_previous('span').string)
             except ValueError:
+                logger.warn("Value Error found, ignore.")
                 continue
+    logger.info("获取基金最近一月信息结束...")
 
 
 def getFundList(map, url):
+    logger = logging.getLogger('main')
+    logger.info("获取基金列表开始...")
+    logger.info("访问 url:" + url)
     resp = request.urlopen(url)
     html_data = resp.read().decode('gbk')
     soup = bs(html_data, 'html.parser')
@@ -44,7 +54,8 @@ def getFundList(map, url):
         if len(specific_fund):
             map[specific_fund[0].string] = specific_fund[0]['href']
         else:
-            print("*Fund list is empty!!!*")
+            logger.warn("基金列表为空")
+    logger.info("获取基金列表结束...")
 
 
 url = "http://fund.eastmoney.com/allfund.html"
@@ -61,7 +72,9 @@ def main():
     recent_month = {}
     getFundInfoRecentMonth(fund_map, recent_month)
 
-    print(recent_month)
+    # print(recent_month)
 
     logger.info("Main Function end...")
+
+
 main()
