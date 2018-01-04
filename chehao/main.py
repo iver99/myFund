@@ -6,11 +6,13 @@ import operator
 from urllib import request
 from bs4 import BeautifulSoup as bs
 from collections import OrderedDict
+from os import path
 
 # import fundutil
 # 保存首页的图片到本地
 # 定义文件保存路径
-logging.config.fileConfig('util/logging.conf')
+log_file_path = path.join(path.dirname(path.abspath(__file__)), 'logging.conf')
+logging.config.fileConfig(log_file_path)
 logger = logging.getLogger('main')
 
 # def sort(map):
