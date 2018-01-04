@@ -57,16 +57,15 @@ def getFundInfoRecentMonth(map, result):
                 continue
     logger.info("获取基金最近一月信息结束...")
 
-
-def getFundList(map, url):
-    logger.info("获取基金列表开始...")
+# index is fund code start number ex: 方正富邦货币B(730103), index is 7
+def getFundList(map, url, index):
+    logger.info("获取基金列表开始...fund prefix is " + index)
     logger.info("访问 url:" + url)
     resp = request.urlopen(url)
     html_data = resp.read().decode('gbk')
     soup = bs(html_data, 'html.parser')
     num_boxes = soup.find_all('div', class_='num_box')
-    # TODO: 暂时先处理基金代号7开头的基金
-    fund_list = num_boxes[7].find_all('li')
+    fund_list = num_boxes[index].find_all('li')
     for item in fund_list:
         # 有三个<a>,只要第一个, ex:（092002）大成债券C | 基金吧 | 档案
         specific_fund = item.find_all('a')
@@ -86,7 +85,7 @@ headers = {
 def main():
     logger.info("Main function begin...")
     fund_map = {}
-    getFundList(fund_map, url)
+    getFundList(fund_map, url, 6)
     recent_month = {}
     getFundInfoRecentMonth(fund_map, recent_month)
     # sort(recent_month)
