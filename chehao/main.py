@@ -7,6 +7,7 @@ from urllib import request
 from bs4 import BeautifulSoup as bs
 from collections import OrderedDict
 from os import path
+import threading
 
 # import fundutil
 # 保存首页的图片到本地
@@ -14,6 +15,7 @@ from os import path
 log_file_path = path.join(path.dirname(path.abspath(__file__)), 'logging.conf')
 logging.config.fileConfig(log_file_path)
 logger = logging.getLogger('main')
+
 
 # def sort(map):
 #     logger.info("准备开始排序...")
@@ -26,7 +28,7 @@ logger = logging.getLogger('main')
 #     logger.info("排序结束")
 #     return sorted_dict
 
-def getFundInfoRecentMonth(map, result):
+def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
     logger.info("获取基金最近一月信息开始...")
     # iterate each fund info
     for key, value in map.items():
@@ -35,31 +37,31 @@ def getFundInfoRecentMonth(map, result):
         soup = bs(fund_data_html, 'html.parser')
         num_ui = soup.find_all('span', class_=['ui-font-middle', 'ui-num'])
         for item in num_ui:
-            try:
-                if item.find_previous('span').get_text().index('近1月') >= 0:
-                    # print(key)
-                    # print(item.get_text()[:-1])
-                    # print(int(item.get_text()[:-1]))
-                    # remove the at tail'%'
-                    # 暂时丢弃最近一个月收益为负的基金，提高效率
-                    fund_recent_month = float(item.get_text()[:-1])
-                    if(fund_recent_month < 0):
-                        continue
-                    else:
-                        result[key] = fund_recent_month
-                    logger.debug("fund key is [%s] and value is [%s] " % (key, item.get_text()[:-1]))
+            if item.find_previous('span').get_text().count('近1月') > 0:
+                # print(key)
+                # print(item.get_text()[:-1])
+                # print(int(item.get_text()[:-1]))
+                # remove the at tail'%'
+                # 暂时丢弃最近一个月收益为负的基金，提高效率
+                fund_recent_month = float(item.get_text()[:-1])
+                if (fund_recent_month < 0):
+                    continue
                 else:
-                    logger.warn("")
-                    print(item.find_previous('span').string)
-            except ValueError:
-                # //TODO :fix below warn
-                # logger.warn("Value Error found, ignore.")
-                continue
+                    if (key.count('货币') > 0):
+                        currency_fund_map[key] = fund_recent_month
+                        logger.debug("货币基金: fund key is [%s] and value is [%s] " % (key, item.get_text()[:-1]))
+                    elif (key.count('债券') > 0):
+                        bond_fund_map[key] = fund_recent_month
+                        logger.debug("债券基金: fund key is [%s] and value is [%s] " % (key, item.get_text()[:-1]))
+                    else:
+                        normal_fund[key] = fund_recent_month
+                        logger.debug("普通基金: fund key is [%s] and value is [%s] " % (key, item.get_text()[:-1]))
     logger.info("获取基金最近一月信息结束...")
+
 
 # index is fund code start number ex: 方正富邦货币B(730103), index is 7
 def getFundList(map, url, index):
-    logger.info("获取基金列表开始...fund prefix is " + index)
+    logger.info("获取基金列表开始...fund prefix is " + str(index))
     logger.info("访问 url:" + url)
     resp = request.urlopen(url)
     html_data = resp.read().decode('gbk')
@@ -76,25 +78,51 @@ def getFundList(map, url, index):
     logger.info("获取基金列表结束...")
 
 
-url = "http://fund.eastmoney.com/allfund.html"
+fund_url = "http://fund.eastmoney.com/allfund.html"
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '                            'Chrome/51.0.2704.63 Safari/537.36'
 }
 
 
+def target(index, normal_fund, currency_fund_map, bond_fund_map):
+    print('Current threading  %s is running' % threading.current_thread().name);
+    # 下面的map会包含键值对是"基金名字->基金对应的url地址"
+    raw_fund_map = {}
+    getFundList(raw_fund_map, fund_url, index)
+    # 下面map会包含键值对是"基金名字->最近一月的收益"
+    # normal_fund = {}
+    getFundInfoRecentMonth(raw_fund_map, normal_fund, currency_fund_map, bond_fund_map)
+    # 对获取到的"基金名字->最近一月的收益" map进行排序，从高到低
+    sorted_normal_fund = sorted(normal_fund.items(), key=lambda d: d[1], reverse=True)
+    logger.info("普通基金最近一个月收益由高到低为：")
+    logger.info(sorted_normal_fund)
+
+    sorted_currency_fund = sorted(currency_fund_map.items(), key=lambda d: d[1], reverse=True)
+    logger.info("货币基金最近一个月收益由高到低为：")
+    logger.info(sorted_currency_fund)
+
+    sorted_bond_fund = sorted(bond_fund_map.items(), key=lambda d: d[1], reverse=True)
+    logger.info("债券基金最近一个月收益由高到低为：")
+    logger.info(sorted_bond_fund)
+
+
 def main():
     logger.info("Main function begin...")
-    fund_map = {}
-    getFundList(fund_map, url, 6)
-    recent_month = {}
-    getFundInfoRecentMonth(fund_map, recent_month)
-    # sort(recent_month)
-    sorted_recent_month = sorted(recent_month.items(), key=lambda d: d[1], reverse=True)
-    print(sorted_recent_month)
-    logger.info("最近一个月收益由高到低为：")
-    logger.info(sorted_recent_month)
-
-    logger.info("Main Function end...")
+    # 货币基金 map
+    currency_fund_map = {}
+    # 债券基金 map
+    bond_fund_map = {}
+    # 普通基金map
+    normal_fund_map = {}
+    target(7, normal_fund_map, currency_fund_map, bond_fund_map)
+    # t7 = threading.Thread(target=target(7,normal_fund_map,currency_fund_map, bond_fund_map), name="name7")
+    # t7.start()
+    # t6 = threading.Thread(target=target(6), name="name6")
+    # t6.start()
+    # for i in range(2):
+    #     t = threading.Thread(target=target(7))
+    #     t.start()
+    # logger.info("Main Function end...")  # def main():
 
 
 main()
