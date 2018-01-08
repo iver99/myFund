@@ -5,10 +5,10 @@ import logging.config
 import operator
 from urllib import request
 from bs4 import BeautifulSoup as bs
-from collections import OrderedDict
 from os import path
 import threading
 import time
+import heapq
 
 # import fundutil
 # 保存首页的图片到本地
@@ -40,19 +40,20 @@ def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
         num_ui = soup.find_all('span', class_=['ui-font-middle', 'ui-num'])
         for item in num_ui:
             if item.find_previous('span').get_text().count('近1月') > 0:
-                # print(key)
-                # print(item.get_text()[:-1])
-                # print(int(item.get_text()[:-1]))
-                # remove the at tail'%'
-                # 暂时丢弃最近一个月收益为负的基金，提高效率
-                fund_recent_month = float(item.get_text()[:-1])
-                if (fund_recent_month < 0):
+                # 基金页面可能存在认购页面，导致无法解析出最近一月的收益，catch住这个ValueError然后继续
+                try:
+                    fund_recent_month = float(item.get_text()[:-1])
+                except ValueError as e:
+                    logger.warn(e)
+                    continue
+                # 暂时丢弃最近一个月收益为负的基金，提高效率, 丢弃货币基金
+                if fund_recent_month < 0 or key.count('货币') or key.count('现金'):
                     continue
                 else:
-                    if (key.count('货币') > 0):
+                    if key.count('货币') > 0:
                         currency_fund_map[key] = fund_recent_month
                         logger.debug("货币基金: fund key is [%s] and value is [%s] " % (key, item.get_text()[:-1]))
-                    elif (key.count('债券') > 0):
+                    elif key.count('债券') > 0:
                         bond_fund_map[key] = fund_recent_month
                         logger.debug("债券基金: fund key is [%s] and value is [%s] " % (key, item.get_text()[:-1]))
                     else:
@@ -105,15 +106,15 @@ def target(index):
     getFundInfoRecentMonth(raw_fund_map, normal_fund_map, currency_fund_map, bond_fund_map)
     before_sort_time = time.time();
     # 对获取到的"基金名字->最近一月的收益" map进行排序，从高到低
-    sorted_normal_fund = sorted(normal_fund_map.items(), key=lambda d: d[1], reverse=True)
+    sorted_normal_fund = heapq.nlargest(10, normal_fund_map.items(), key=lambda s: s[1])
     logger.info("普通基金最近一个月收益由高到低为：")
     logger.info(sorted_normal_fund)
 
-    sorted_currency_fund = sorted(currency_fund_map.items(), key=lambda d: d[1], reverse=True)
+    sorted_currency_fund = heapq.nlargest(10, currency_fund_map.items(), key=lambda s: s[1])
     logger.info("货币基金最近一个月收益由高到低为：")
     logger.info(sorted_currency_fund)
 
-    sorted_bond_fund = sorted(bond_fund_map.items(), key=lambda d: d[1], reverse=True)
+    sorted_bond_fund = heapq.nlargest(10, bond_fund_map.items(), key=lambda s: s[1])
     logger.info("债券基金最近一个月收益由高到低为：")
     logger.info(sorted_bond_fund)
     logger.info("基金排序花费时间为 %d ms" % (time.time() - before_sort_time))
@@ -122,11 +123,26 @@ def target(index):
 def main():
     logger.info("Main function begin...")
 
-    t7 = threading.Thread(target=target, name="Thread-7", args=(7,))
-    t7.start()
-
+    # t7 = threading.Thread(target=target, name="Thread-7", args=(7,))
+    # t7.start()
+    #
     # t6 = threading.Thread(target=target, name="Thread-6", args=(6,))
     # t6.start()
+
+    t5 = threading.Thread(target=target, name="Thread-5", args=(5,))
+    t5.start()
+
+    # t4 = threading.Thread(target=target, name="Thread-4", args=(4,))
+    # t4.start()
+
+    # t3 = threading.Thread(target=target, name="Thread-3", args=(3,))
+    # t3.start()
+    #
+    # t2 = threading.Thread(target=target, name="Thread-2", args=(2,))
+    # t2.start()
+
+    # t1 = threading.Thread(target=target, name="Thread-1", args=(1,))
+    # t1.start()
 
 
 main()
