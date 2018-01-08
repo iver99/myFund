@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup as bs
 from collections import OrderedDict
 from os import path
 import threading
+import time
 
 # import fundutil
 # 保存首页的图片到本地
@@ -29,6 +30,7 @@ logger = logging.getLogger('main')
 #     return sorted_dict
 
 def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
+    current_time = time.time()
     logger.info("获取基金最近一月信息开始...")
     # iterate each fund info
     for key, value in map.items():
@@ -56,11 +58,12 @@ def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
                     else:
                         normal_fund[key] = fund_recent_month
                         logger.debug("普通基金: fund key is [%s] and value is [%s] " % (key, item.get_text()[:-1]))
-    logger.info("获取基金最近一月信息结束...")
+    logger.info("获取基金最近一月信息结束...%s took %d ms" % (threading.current_thread().name, (time.time() - current_time)))
 
 
 # index is fund code start number ex: 方正富邦货币B(730103), index is 7
 def getFundList(map, url, index):
+    start_time  = time.time();
     logger.info("获取基金列表开始...fund prefix is " + str(index))
     logger.info("访问 url:" + url)
     resp = request.urlopen(url)
@@ -75,7 +78,7 @@ def getFundList(map, url, index):
             map[specific_fund[0].string] = specific_fund[0]['href']
         else:
             logger.warn("基金列表为空")
-    logger.info("获取基金列表结束...")
+    logger.info("获取基金列表结束...took %d ms" % (time.time() - start_time))
 
 
 fund_url = "http://fund.eastmoney.com/allfund.html"
@@ -84,16 +87,24 @@ headers = {
 }
 
 
-def target(index, normal_fund, currency_fund_map, bond_fund_map):
-    print('Current threading  %s is running' % threading.current_thread().name);
+def target(index):
+    # 货币基金 map
+    currency_fund_map = {}
+    # 债券基金 map
+    bond_fund_map = {}
+    # 普通基金map
+    normal_fund_map = {}
+
+    print('当前线程名字为 %s ' % threading.current_thread().name);
     # 下面的map会包含键值对是"基金名字->基金对应的url地址"
     raw_fund_map = {}
     getFundList(raw_fund_map, fund_url, index)
     # 下面map会包含键值对是"基金名字->最近一月的收益"
     # normal_fund = {}
-    getFundInfoRecentMonth(raw_fund_map, normal_fund, currency_fund_map, bond_fund_map)
+    getFundInfoRecentMonth(raw_fund_map, normal_fund_map, currency_fund_map, bond_fund_map)
+    before_sort_time = time.time();
     # 对获取到的"基金名字->最近一月的收益" map进行排序，从高到低
-    sorted_normal_fund = sorted(normal_fund.items(), key=lambda d: d[1], reverse=True)
+    sorted_normal_fund = sorted(normal_fund_map.items(), key=lambda d: d[1], reverse=True)
     logger.info("普通基金最近一个月收益由高到低为：")
     logger.info(sorted_normal_fund)
 
@@ -104,25 +115,17 @@ def target(index, normal_fund, currency_fund_map, bond_fund_map):
     sorted_bond_fund = sorted(bond_fund_map.items(), key=lambda d: d[1], reverse=True)
     logger.info("债券基金最近一个月收益由高到低为：")
     logger.info(sorted_bond_fund)
+    logger.info("基金排序花费时间为 %d ms" % (time.time() - before_sort_time))
 
 
 def main():
     logger.info("Main function begin...")
-    # 货币基金 map
-    currency_fund_map = {}
-    # 债券基金 map
-    bond_fund_map = {}
-    # 普通基金map
-    normal_fund_map = {}
-    target(7, normal_fund_map, currency_fund_map, bond_fund_map)
-    # t7 = threading.Thread(target=target(7,normal_fund_map,currency_fund_map, bond_fund_map), name="name7")
-    # t7.start()
-    # t6 = threading.Thread(target=target(6), name="name6")
-    # t6.start()
-    # for i in range(2):
-    #     t = threading.Thread(target=target(7))
-    #     t.start()
-    # logger.info("Main Function end...")  # def main():
+
+    t7 = threading.Thread(target=target, name="Thread-7", args=(7,))
+    t7.start()
+
+    t6 = threading.Thread(target=target, name="Thread-6", args=(6,))
+    t6.start()
 
 
 main()
