@@ -58,6 +58,7 @@ def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
                     else:
                         normal_fund[key] = fund_recent_month
                         logger.debug("普通基金: fund key is [%s] and value is [%s] " % (key, item.get_text()[:-1]))
+     # FIXME fix below bug of time cost
     logger.info("获取基金最近一月信息结束...%s took %d ms" % (threading.current_thread().name, (time.time() - current_time)))
 
 
@@ -124,8 +125,8 @@ def main():
     t7 = threading.Thread(target=target, name="Thread-7", args=(7,))
     t7.start()
 
-    t6 = threading.Thread(target=target, name="Thread-6", args=(6,))
-    t6.start()
+    # t6 = threading.Thread(target=target, name="Thread-6", args=(6,))
+    # t6.start()
 
 
 main()
