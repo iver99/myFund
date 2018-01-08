@@ -51,8 +51,8 @@ def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
 # index is fund code start number ex: 方正富邦货币B(730103), index is 7
 def getFundList(map, url, index):
     start_time  = time.time();
-    logger.info("获取基金列表开始...fund prefix is " + str(index))
-    logger.info("访问 url:" + url)
+    logger.info("开始获取基金列表,基金开头数字为 %s" + str(index))
+    logger.debug("访问 url:" + url)
     resp = request.urlopen(url)
     html_data = resp.read().decode('gbk')
     soup = bs(html_data, 'html.parser')
@@ -111,7 +111,7 @@ def target(index):
 
 
 def main():
-    logger.info("Main function begin...")
+    logger.info("基金爬虫开始。。。")
 
     t7 = threading.Thread(target=target, name="Thread-7", args=(7,))
     t7.start()
@@ -134,5 +134,6 @@ def main():
     t1 = threading.Thread(target=target, name="Thread-1", args=(1,))
     t1.start()
 
+    logger.info("基金爬虫结束。。。")
 
 main()
