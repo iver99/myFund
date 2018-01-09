@@ -1,5 +1,5 @@
 # 项目用途
-根据天天基金网进行(http://fund.eastmoney.com/allfund.html)基金收益排行统计
+根据[天天基金网](http://fund.eastmoney.com/allfund.html)进行基金收益排行统计
 
 #### NOTE:
 - 丢弃货币基金提高效率。
@@ -13,4 +13,4 @@
 - 现在统计所有的基金需要20分钟，效率以后有空再提升吧，先忙别的了。
 
 #### 效果图:
-![效果图](https://github.com//myFund/raw/dev/fund/screenshot/日志效果图.png)
+![效果图](https://github.com/iver99/myFund/raw/dev/screenshot/日志效果图.png)
