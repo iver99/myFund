@@ -28,7 +28,8 @@ def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
                 try:
                     fund_recent_month = float(item.get_text()[:-1])
                 except ValueError as e:
-                    logger.warn(e + "基金代码是 %s " % key)
+                    logger.warn(e)
+                    logger.warn("基金代码是 %s " % key)
                     continue
                 # 暂时丢弃最近一个月收益为小于 1% 的基金，提高效率
                 if fund_recent_month < 1.0:
@@ -51,7 +52,7 @@ def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
 # index is fund code start number ex: 方正富邦货币B(730103), index is 7
 def getFundList(map, url, index):
     start_time  = time.time();
-    logger.info("开始获取基金列表,基金开头数字为 %s" + str(index))
+    logger.info("开始获取基金列表,基金开头数字为 " + str(index))
     logger.debug("访问 url:" + url)
     resp = request.urlopen(url)
     html_data = resp.read().decode('gbk')
@@ -87,7 +88,6 @@ def target(index):
     # 普通基金map
     normal_fund_map = {}
 
-    print('当前线程名字为 %s ' % threading.current_thread().name);
     # 下面的map会包含键值对是"基金名字->基金对应的url地址"
     raw_fund_map = {}
     getFundList(raw_fund_map, fund_url, index)
@@ -113,27 +113,25 @@ def target(index):
 def main():
     logger.info("基金爬虫开始。。。")
 
-    t7 = threading.Thread(target=target, name="Thread-7", args=(7,))
-    t7.start()
-
-    t6 = threading.Thread(target=target, name="Thread-6", args=(6,))
-    t6.start()
-
-    t5 = threading.Thread(target=target, name="Thread-5", args=(5,))
-    t5.start()
-
-    t4 = threading.Thread(target=target, name="Thread-4", args=(4,))
-    t4.start()
-
-    t3 = threading.Thread(target=target, name="Thread-3", args=(3,))
-    t3.start()
+    t1 = threading.Thread(target=target, name="Thread-1", args=(1,))
+    t1.start()
 
     t2 = threading.Thread(target=target, name="Thread-2", args=(2,))
     t2.start()
 
-    t1 = threading.Thread(target=target, name="Thread-1", args=(1,))
-    t1.start()
+    t3 = threading.Thread(target=target, name="Thread-3", args=(3,))
+    t3.start()
 
-    logger.info("基金爬虫结束。。。")
+    t4 = threading.Thread(target=target, name="Thread-4", args=(4,))
+    t4.start()
+
+    t5 = threading.Thread(target=target, name="Thread-5", args=(5,))
+    t5.start()
+
+    t6 = threading.Thread(target=target, name="Thread-6", args=(6,))
+    t6.start()
+
+    t7 = threading.Thread(target=target, name="Thread-7", args=(7,))
+    t7.start()
 
 main()
