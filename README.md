@@ -13,4 +13,4 @@
 - 现在统计所有的基金需要20分钟，效率以后有空再提升吧，先忙别的了。
 
 #### 效果图:
-![效果图](https://github.com//myFund/raw/dev/fund/screenshot/日志效果图.png)
+![效果图](https://github.com/iver99/myFund/raw/dev/screenshot/日志效果图.png)
