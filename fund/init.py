@@ -20,28 +20,32 @@ def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
         fund_resp = request.urlopen(value)
         fund_data_html = fund_resp.read().decode('utf-8')
         soup = bs(fund_data_html, 'html.parser')
-        num_ui = soup.find_all('span', class_=['ui-font-middle'], limit=3)
+        # source: <dd><span>近1月：</span><span class="ui-font-middle  ui-num">--</span></dd>
+        num_ui = soup.find_all('dd', limit=2)
         # 基金页面可能存在认购页面，导致无法解析出最近一月的收益，catch住这个ValueError然后继续
         try:
-            # 最后一个值是最近一个月的收益
-            fund_recent_month = float(num_ui[2].get_text()[:-1])
+            # 正常来说第二个数据是source，所以下标取1, 正常情况下num_ui[1].text为'近1月：2.30%'，异常情况为'近1月：--'，或者其它情况
+            if num_ui[1].text.count('近1月') <= 0 or num_ui[1].text.count('--'):
+                logger.warn("不包含近1月或者包含其它非法格式数据 " + str(num_ui[1].contents))
+                continue
+            fund_recent_month = float(num_ui[1].contents[1].string[:-1])
         except ValueError as e:
             logger.warn(e)
             logger.warn("基金代码是 %s " % key)
             continue
-        # 暂时丢弃最近一个月收益为小于 1% 的基金，提高效率
-        if fund_recent_month < 1.0:
+        # 暂时丢弃最近一个月收益为小于 3% 的基金，提高效率(可以改到更大，提高后续排序效率)
+        if fund_recent_month < 3.0:
             continue
         else:
             if key.count('ETF基金') > 0:
                 currency_fund_map[key] = fund_recent_month
-                logger.debug("ETF基金: fund key is [%s] and value is [%s] " % (key, num_ui[2].get_text()[:-1]))
+                logger.debug("ETF基金: fund key is [%s] and value is [%f] " % (key, fund_recent_month))
             elif key.count('债券') > 0:
                 bond_fund_map[key] = fund_recent_month
-                logger.debug("债券基金: fund key is [%s] and value is [%s] " % (key, num_ui[2].get_text()[:-1]))
+                logger.debug("债券基金: fund key is [%s] and value is [%f] " % (key, fund_recent_month))
             else:
                 normal_fund[key] = fund_recent_month
-                logger.debug("普通基金: fund key is [%s] and value is [%s] " % (key, num_ui[2].get_text()[:-1]))
+                logger.debug("普通基金: fund key is [%s] and value is [%f] " % (key, fund_recent_month))
                 # FIXME fix below bug of time cost
     logger.info("#2 current time is %d" % time.time())
     logger.info("获取基金最近一月信息结束...%s took %d ms" % (threading.current_thread().name, (time.time() - current_time)))
@@ -61,9 +65,9 @@ def getFundList(map, url, index):
     for item in fund_list:
         # 有三个<a>,只要第一个, ex:<a>（092002）大成债券C</a> | <a>基金吧</a> | <a>档案</a>
         specific_fund = item.find('a')
-        # 丢弃行为放到这个会效率比较高, 丢弃货币基金
+        # 爬取数据时，丢弃的种类关键字
         if specific_fund == None or specific_fund.string.count('货币') or specific_fund.string.count(
-                '现金') or specific_fund.string.count('保本'):
+                '现金') or specific_fund.string.count('保本') or specific_fund.string.count('纯债'):
             continue
         map[specific_fund.string] = specific_fund['href']
     logger.info("结束处理开头为%d的基金，页面获取基金个数为 %d" % (index, len(map)))
@@ -71,11 +75,6 @@ def getFundList(map, url, index):
 
 
 fund_url = "http://fund.eastmoney.com/allfund.html"
-
-
-# headers = {
-#     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '                            'Chrome/51.0.2704.63 Safari/537.36'
-# }
 
 
 def target(index):
@@ -129,7 +128,5 @@ def main():
     t6 = threading.Thread(target=target, name="Thread-6", args=(6,))
     t6.start()
 
-    t7 = threading.Thread(target=target, name="Thread-7", args=(7,))
-    t7.start()
-
-main()
+if __name__=='__main__':
+    main()
