@@ -10,6 +10,8 @@ import heapq
 log_file_path = path.join(path.dirname(path.abspath(__file__)), 'logging.conf')
 logging.config.fileConfig(log_file_path)
 logger = logging.getLogger('main')
+fund_url = "http://fund.eastmoney.com/allfund.html"
+
 
 def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
     current_time = time.time()
@@ -26,12 +28,12 @@ def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
         try:
             # 正常来说第二个数据是source，所以下标取1, 正常情况下num_ui[1].text为'近1月：2.30%'，异常情况为'近1月：--'，或者其它情况
             if num_ui[1].text.count('近1月') <= 0 or num_ui[1].text.count('--'):
-                logger.warn("不包含近1月或者包含其它非法格式数据 " + str(num_ui[1].contents))
+                logger.debug("不包含近1月或者包含其它非法格式数据 " + str(num_ui[1].contents))
                 continue
             fund_recent_month = float(num_ui[1].contents[1].string[:-1])
         except ValueError as e:
-            logger.warn(e)
-            logger.warn("基金代码是 %s " % key)
+            logger.debug(e)
+            logger.debug("基金代码是 %s " % key)
             continue
         # 暂时丢弃最近一个月收益为小于 3% 的基金，提高效率(可以改到更大，提高后续排序效率)
         if fund_recent_month < 3.0:
@@ -48,14 +50,14 @@ def getFundInfoRecentMonth(map, normal_fund, currency_fund_map, bond_fund_map):
                 logger.debug("普通基金: fund key is [%s] and value is [%f] " % (key, fund_recent_month))
                 # FIXME fix below bug of time cost
     logger.info("#2 current time is %d" % time.time())
-    logger.info("获取基金最近一月信息结束...%s took %d ms" % (threading.current_thread().name, (time.time() - current_time)))
+    # logger.info("获取基金最近一月信息结束...%s took %d ms" % (threading.current_thread().name, (time.time() - current_time)))
 
 
 # index is fund code start number ex: 方正富邦货币B(730103), index is 7
 def getFundList(map, url, index):
     start_time = time.time();
     logger.info("开始获取基金列表,基金开头数字为 " + str(index))
-    logger.debug("访问 url:" + url)
+    # logger.debug("访问 url:" + url)
     resp = request.urlopen(url)
     html_data = resp.read().decode('gbk')
     soup = bs(html_data, 'html.parser')
@@ -71,10 +73,7 @@ def getFundList(map, url, index):
             continue
         map[specific_fund.string] = specific_fund['href']
     logger.info("结束处理开头为%d的基金，页面获取基金个数为 %d" % (index, len(map)))
-    logger.info("获取基金列表结束...took %d ms" % (time.time() - start_time))
-
-
-fund_url = "http://fund.eastmoney.com/allfund.html"
+    # logger.info("获取基金列表结束...took %d ms" % (time.time() - start_time))
 
 
 def target(index):
@@ -104,7 +103,7 @@ def target(index):
     sorted_bond_fund = heapq.nlargest(10, bond_fund_map.items(), key=lambda s: s[1])
     logger.info("债券基金最近一个月收益由高到低为：")
     logger.info(sorted_bond_fund)
-    logger.info("基金排序花费时间为 %d ms" % (time.time() - before_sort_time))
+    # logger.info("基金排序花费时间为 %d ms" % (time.time() - before_sort_time))
 
 
 def main():
@@ -128,5 +127,6 @@ def main():
     t6 = threading.Thread(target=target, name="Thread-6", args=(6,))
     t6.start()
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     main()
