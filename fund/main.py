@@ -62,14 +62,11 @@ def getFundList(map, url, index):
     logger.info("开始处理开头为%d的基金，页面获取基金个数为 %d" % (index, len(fund_list)))
     for item in fund_list:
         # 有三个<a>,只要第一个, ex:<a>（092002）大成债券C</a> | <a>基金吧</a> | <a>档案</a>
-        specific_fund = item.find_all('a')
-        if len(specific_fund):
-            #丢弃行为放到这个会效率比较高, 丢弃货币基金
-            if specific_fund[0].string.count('货币') or specific_fund[0].string.count('现金'):
-                continue
-            map[specific_fund[0].string] = specific_fund[0]['href']
-        else:
-            logger.warn("基金列表为空")
+        specific_fund = item.find('a')
+        # 丢弃行为放到这个会效率比较高, 丢弃货币基金
+        if specific_fund == None or specific_fund.string.count('货币') or specific_fund.string.count('现金'):
+            continue
+        map[specific_fund.string] = specific_fund['href']
     logger.info("结束处理开头为%d的基金，页面获取基金个数为 %d" % (index, len(map)))
     logger.info("获取基金列表结束...took %d ms" % (time.time() - start_time))
 
